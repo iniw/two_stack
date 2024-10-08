@@ -1,5 +1,5 @@
-use std::{iter::Peekable, str::CharIndices};
-use thiserror::Error;
+use core::fmt;
+use std::{fmt::Display, iter::Peekable, str::CharIndices};
 
 #[derive(Debug, Clone)]
 pub struct Lexer<'src> {
@@ -113,8 +113,15 @@ impl Operator {
     }
 }
 
-#[derive(Debug, Copy, Clone, Error)]
+#[derive(Debug, Copy, Clone)]
 pub enum LexerError {
-    #[error("Unknown character \"{0}\"")]
     UnknownCharacter(char),
+}
+
+impl Display for LexerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            LexerError::UnknownCharacter(c) => write!(f, "Unknown character \"{c}\""),
+        }
+    }
 }
