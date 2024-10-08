@@ -40,32 +40,33 @@ impl<'src> Lexer<'src> {
             '(' => Ok(Some(Token::Operator(Operator::LeftParenthesis))),
             ')' => Ok(Some(Token::Operator(Operator::RightParenthesis))),
 
+            c if c.is_ascii_whitespace() => Ok(None),
+
             c if c.is_ascii_digit() => {
                 let number = {
-                    let first_part = self.consume_while(start, |c| c.is_ascii_digit());
-                    if let Some((second_start, _)) = self.src.next_if(|(_, c)| *c == '.') {
-                        let second_part = self.consume_while(second_start, |c| c.is_ascii_digit());
-                        self.src_data[start..(start + first_part.len() + second_part.len())]
-                            .parse::<f64>()
-                            .expect("Input number should be parseable into an f64")
-                    } else {
-                        first_part
-                            .parse::<f64>()
-                            .expect("Input number should be parseable into an f64")
-                    }
+                    let number_str = {
+                        let pre_dot = self.consume_while(start, char::is_ascii_digit);
+                        if let Some((dot_pos, _)) = self.src.next_if(|(_, c)| *c == '.') {
+                            let post_dot = self.consume_while(dot_pos, char::is_ascii_digit);
+                            &self.src_data[start..start + pre_dot.len() + post_dot.len()]
+                        } else {
+                            pre_dot
+                        }
+                    };
+                    number_str
+                        .parse::<f64>()
+                        .expect("Input number should be parseable into an f64")
                 };
 
                 Ok(Some(Token::Number(number)))
             }
 
-            c if c.is_ascii_whitespace() => Ok(None),
-
             c => Err(LexerError::UnknownCharacter(c)),
         }
     }
 
-    fn consume_while(&mut self, start: usize, f: impl Fn(char) -> bool) -> &'src str {
-        while self.src.next_if(|(_, next)| f(*next)).is_some() {}
+    fn consume_while(&mut self, start: usize, f: impl Fn(&char) -> bool) -> &'src str {
+        while self.src.next_if(|(_, next)| f(next)).is_some() {}
         self.current_lexeme_starting_from(start)
     }
 
